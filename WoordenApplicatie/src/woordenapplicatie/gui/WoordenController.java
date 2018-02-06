@@ -65,8 +65,8 @@ public class WoordenController implements Initializable {
 
  @FXML
  private void aantalAction(ActionEvent event) {
-  System.out.println("Totaal aantal woorden: " + countTotalWords(DEFAULT_TEXT));
-  System.out.println("Totaal aantal unieke woorden in de tekst: " + getDistinctWords());
+  addOutput("Totaal aantal woorden: " + countTotalWords(DEFAULT_TEXT));
+  addOutput("Totaal aantal unieke woorden in de tekst: " + getDistinctWords());
  }
 
  @FXML
@@ -127,7 +127,8 @@ public class WoordenController implements Initializable {
   return listOfWords.size(); //return the list you made of distinct words
  }
 
-
-
+ public void addOutput(String text) {
+    taOutput.setText(taOutput.getText() + text + "\n");
+ }
 
 }
