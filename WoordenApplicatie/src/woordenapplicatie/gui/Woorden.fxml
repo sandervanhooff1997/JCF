@@ -20,6 +20,7 @@
                         <Button fx:id="btSorteer" mnemonicParsing="false" onAction="#sorteerAction" prefHeight="26.0" prefWidth="101.0" text="Sorteer" />
                         <Button fx:id="btFrequentie" layoutX="204.0" mnemonicParsing="false" onAction="#frequentieAction" prefHeight="26.0" prefWidth="102.0" text="Frequentie" />
                         <Button fx:id="btConcordantie" layoutX="306.0" mnemonicParsing="false" onAction="#concordatieAction" text="Concordantie" />
+                        <Button fx:id="btClear" mnemonicParsing="false" onAction="#clearAction" prefHeight="27.0" prefWidth="102.0" text="Clear" />
                      </children>
                   </VBox>
                </children>

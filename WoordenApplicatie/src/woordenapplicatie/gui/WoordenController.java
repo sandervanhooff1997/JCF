@@ -8,9 +8,7 @@ package woordenapplicatie.gui;
 
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.ResourceBundle;
-import java.util.Scanner;
+import java.util.*;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -56,6 +54,8 @@ public class WoordenController implements Initializable {
  @FXML
  private Button btConcordantie;
  @FXML
+ private Button btClear;
+ @FXML
  private TextArea taOutput;
 
  @Override
@@ -66,22 +66,33 @@ public class WoordenController implements Initializable {
  @FXML
  private void aantalAction(ActionEvent event) {
   addOutput("Totaal aantal woorden: " + countTotalWords(DEFAULT_TEXT));
-  addOutput("Totaal aantal unieke woorden in de tekst: " + getDistinctWords());
+  addOutput("Totaal aantal unieke woorden in de tekst: " + getDistinctWords().size());
+  addOutput("");
  }
 
  @FXML
  private void sorteerAction(ActionEvent event) {
-  throw new UnsupportedOperationException("Not supported yet.");
+     addOutput("Aflopend gesorteerde woordenlijst: " + getSortedWords());
+     addOutput("");
  }
 
  @FXML
  private void frequentieAction(ActionEvent event) {
-  throw new UnsupportedOperationException("Not supported yet.");
+     addOutput("Aantal dezelfde woorden: ");
+     for (Map.Entry<String, Integer> entry : getDuplicateWordsCount().entrySet()) {
+         addOutput("Woord : " + entry.getKey() + " Aantal : " + entry.getValue());
+     }
+     addOutput("");
  }
 
  @FXML
  private void concordatieAction(ActionEvent event) {
   throw new UnsupportedOperationException("Not supported yet.");
+ }
+
+ @FXML
+ private void clearAction(ActionEvent event) {
+     taOutput.clear();
  }
 
  private int countTotalWords(String stringToCount) {
@@ -109,25 +120,46 @@ public class WoordenController implements Initializable {
   return wordCount;
  }
 
- public int getDistinctWords(){
-
-  Scanner scan = new Scanner(DEFAULT_TEXT);
-  ArrayList<String> listOfWords = new ArrayList<String>();
-
-  String word = scan.next(); //scanner automatically uses " " as a delimeter
-
-  String[] words = DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*");
-
-  for (String s : words) {
-   if(!listOfWords.contains(s)){ //add the word if it isn't added already
-    listOfWords.add(s);
-   }
-  }
-
-  return listOfWords.size(); //return the list you made of distinct words
+ private String[] getSeperatedWords(){
+     return DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*");
  }
 
- public void addOutput(String text) {
+ private ArrayList<String> getDistinctWords(){
+  ArrayList<String> distinctWords = new ArrayList<>();
+
+  for (String s : getSeperatedWords()) {
+    if(!distinctWords.contains(s)){ //add the word if it isn't added already
+       distinctWords.add(s);
+    }
+  }
+
+  return distinctWords; //return the list you made of distinct words
+ }
+
+ private ArrayList<String> getSortedWords(){
+     ArrayList<String> sortedWords = getDistinctWords();
+     //sortedWords.sort(String::compareToIgnoreCase);
+     Collections.sort(sortedWords, Collections.reverseOrder());
+     return sortedWords;
+ }
+
+ private TreeMap<String, Integer> getDuplicateWordsCount(){
+     Map<String, Integer> map = new HashMap<>();
+
+     for (String temp : getSeperatedWords()) {
+         Integer count = map.get(temp);
+         map.put(temp, (count == null) ? 1 : count + 1);
+     }
+
+     // sort the map order
+     return new TreeMap<>(map);
+ }
+
+ private TreeMap<String, Integer> getConcordanceWords(){
+     
+ }
+
+ private void addOutput(String text) {
     taOutput.setText(taOutput.getText() + text + "\n");
  }
 
