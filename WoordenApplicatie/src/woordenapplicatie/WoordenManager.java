@@ -10,6 +10,7 @@ public class WoordenManager implements IWoordenManager{
         this.DEFAULT_TEXT = DEFAULT_TEXT;
     }
 
+    @Override
     public int countTotalWords(String stringToCount) {
         int wordCount = 0;
 
@@ -35,10 +36,12 @@ public class WoordenManager implements IWoordenManager{
         return wordCount;
     }
 
-    private String[] getSeperatedWords(){
+    @Override
+    public String[] getSeperatedWords(){
         return DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*");
     }
 
+    @Override
     public ArrayList<String> getDistinctWords(){
         ArrayList<String> distinctWords = new ArrayList<>();
 
@@ -51,6 +54,7 @@ public class WoordenManager implements IWoordenManager{
         return distinctWords; //return the list you made of distinct words
     }
 
+    @Override
     public ArrayList<String> getSortedWords(){
         ArrayList<String> sortedWords = getDistinctWords();
         //sortedWords.sort(String::compareToIgnoreCase);
@@ -58,6 +62,7 @@ public class WoordenManager implements IWoordenManager{
         return sortedWords;
     }
 
+    @Override
     public TreeMap<String, Integer> getDuplicateWordsCount(){
         Map<String, Integer> map = new HashMap<>();
 
@@ -70,6 +75,7 @@ public class WoordenManager implements IWoordenManager{
         return new TreeMap<>(map);
     }
 
+    @Override
     public TreeMap<String, LinkedList<Integer>> getConcordanceWords(){
         TreeMap<String, LinkedList<Integer>> treemap = new TreeMap<>();
 
