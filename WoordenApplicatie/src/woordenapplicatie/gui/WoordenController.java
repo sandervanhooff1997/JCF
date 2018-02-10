@@ -15,6 +15,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
+import woordenapplicatie.IWoordenManager;
+import woordenapplicatie.WoordenManager;
 
 /**
  * FXML Controller class
@@ -43,6 +45,8 @@ public class WoordenController implements Initializable {
          "Een, twee, drie, vier\n" +
          "Hoedje van papier";
 
+ private IWoordenManager manager;
+
  @FXML
  private Button btAantal;
  @FXML
@@ -60,26 +64,27 @@ public class WoordenController implements Initializable {
 
  @Override
  public void initialize(URL location, ResourceBundle resources) {
-  taInput.setText(DEFAULT_TEXT);
+     manager = new WoordenManager(DEFAULT_TEXT);
+     taInput.setText(DEFAULT_TEXT);
  }
 
  @FXML
  private void aantalAction(ActionEvent event) {
-  addOutput("Totaal aantal woorden: " + countTotalWords(DEFAULT_TEXT));
-  addOutput("Totaal aantal unieke woorden in de tekst: " + getDistinctWords().size());
+  addOutput("Totaal aantal woorden: " + manager.countTotalWords(DEFAULT_TEXT));
+  addOutput("Totaal aantal unieke woorden in de tekst: " + manager.getDistinctWords().size());
   addOutput("");
  }
 
  @FXML
  private void sorteerAction(ActionEvent event) {
-     addOutput("Aflopend gesorteerde woordenlijst: " + getSortedWords());
+     addOutput("Aflopend gesorteerde woordenlijst: " + manager.getSortedWords());
      addOutput("");
  }
 
  @FXML
  private void frequentieAction(ActionEvent event) {
      addOutput("Aantal dezelfde woorden: ");
-     for (Map.Entry<String, Integer> entry : getDuplicateWordsCount().entrySet()) {
+     for (Map.Entry<String, Integer> entry : manager.getDuplicateWordsCount().entrySet()) {
          addOutput("Woord : " + entry.getKey() + " Aantal : " + entry.getValue());
      }
      addOutput("");
@@ -87,76 +92,15 @@ public class WoordenController implements Initializable {
 
  @FXML
  private void concordatieAction(ActionEvent event) {
-  throw new UnsupportedOperationException("Not supported yet.");
+     for (Map.Entry<String, LinkedList<Integer>> stringInt : manager.getConcordanceWords().entrySet()) {  // O(n)
+         addOutput(stringInt.getKey()+" : "+ stringInt.getValue());
+     }
+
  }
 
  @FXML
  private void clearAction(ActionEvent event) {
      taOutput.clear();
- }
-
- private int countTotalWords(String stringToCount) {
-  int wordCount = 0;
-
-  boolean word = false;
-  int endOfLine = DEFAULT_TEXT.length() - 1;
-
-  for (int i = 0; i < DEFAULT_TEXT.length(); i++) {
-   // if the char is a letter, word = true.
-   if (Character.isLetter(DEFAULT_TEXT.charAt(i)) && i != endOfLine) {
-    word = true;
-    // if char isn't a letter and there have been letters before,
-    // counter goes up.
-   } else if (!Character.isLetter(DEFAULT_TEXT.charAt(i)) && word) {
-    wordCount++;
-    word = false;
-    // last word of String; if it doesn't end with a non letter, it
-    // wouldn't count without this.
-   } else if (Character.isLetter(DEFAULT_TEXT.charAt(i)) && i == endOfLine) {
-    wordCount++;
-   }
-  }
-
-  return wordCount;
- }
-
- private String[] getSeperatedWords(){
-     return DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*");
- }
-
- private ArrayList<String> getDistinctWords(){
-  ArrayList<String> distinctWords = new ArrayList<>();
-
-  for (String s : getSeperatedWords()) {
-    if(!distinctWords.contains(s)){ //add the word if it isn't added already
-       distinctWords.add(s);
-    }
-  }
-
-  return distinctWords; //return the list you made of distinct words
- }
-
- private ArrayList<String> getSortedWords(){
-     ArrayList<String> sortedWords = getDistinctWords();
-     //sortedWords.sort(String::compareToIgnoreCase);
-     Collections.sort(sortedWords, Collections.reverseOrder());
-     return sortedWords;
- }
-
- private TreeMap<String, Integer> getDuplicateWordsCount(){
-     Map<String, Integer> map = new HashMap<>();
-
-     for (String temp : getSeperatedWords()) {
-         Integer count = map.get(temp);
-         map.put(temp, (count == null) ? 1 : count + 1);
-     }
-
-     // sort the map order
-     return new TreeMap<>(map);
- }
-
- private TreeMap<String, Integer> getConcordanceWords(){
-     
  }
 
  private void addOutput(String text) {
