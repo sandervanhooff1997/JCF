@@ -16,7 +16,22 @@ public class WoordenManagerTest {
         tekst = "Een, twee, drie, vier\n" +
                 "Hoedje van, hoedje van\n" +
                 "Een, twee, drie, vier\n" +
-                "Hoedje van papier\n" ;
+                "Hoedje van papier\n" +
+                "\n" +
+                "Heb je dan geen hoedje meer\n" +
+                "Maak er één van bordpapier\n" +
+                "Eén, twee, drie, vier\n" +
+                "Hoedje van papier\n" +
+                "\n" +
+                "Een, twee, drie, vier\n" +
+                "Hoedje van, hoedje van\n" +
+                "Een, twee, drie, vier\n" +
+                "Hoedje van papier\n" +
+                "\n" +
+                "En als het hoedje dan niet past\n" +
+                "Zetten we 't in de glazenkas\n" +
+                "Een, twee, drie, vier\n" +
+                "Hoedje van papier" ;
 
         testWoordenManager();
     }
@@ -27,12 +42,13 @@ public class WoordenManagerTest {
 
     @Test
     public void testGetAantal() {
-        int aantalWoorden = 15;
-        int verschillendeWoorden = 7;
-        Assert.assertEquals(aantalWoorden, woordenManager.getSortedWords().size());
+        int aantalWoorden = 68;
+        int verschillendeWoorden = 29;
+        Assert.assertEquals(aantalWoorden, woordenManager.countTotalWords(tekst));
         Assert.assertEquals(verschillendeWoorden, woordenManager.getDistinctWords().size());
     }
 
+    //OUTCOME: PASSED
     @Test
     public void testSorteer() {
 
@@ -56,6 +72,8 @@ public class WoordenManagerTest {
             }
         }
     }
+
+    //OUTCOME: PASSED
     @Test
     public void testGetFrequentie() {
         Map<String, Integer> map;
@@ -72,9 +90,11 @@ public class WoordenManagerTest {
             }
         }
     }
-    //test
+
+    //OUTCOME: PASSED
     @Test
     public void testConcordatie() {
+
         TreeMap<String, LinkedList<Integer>> treemap;
         Assert.assertNotNull(woordenManager.getConcordanceWords());
         treemap = woordenManager.getConcordanceWords();
@@ -95,8 +115,8 @@ public class WoordenManagerTest {
     }
     @Test
     public void testSortText() {
-        String firstString = "een";
-        String lastString = "papier";
+        String firstString = "één";
+        String lastString = "geen";
         Assert.assertNotNull(woordenManager.getSortedWords().size());
         Assert.assertEquals(firstString, woordenManager.getSortedWords().get(0));
         Assert.assertEquals(lastString, woordenManager.getSortedWords().get(14));
@@ -117,13 +137,7 @@ public class WoordenManagerTest {
 
         for(Map.Entry<String, Integer> entry : mapValue.entrySet()) {
             Assert.assertNotNull(entry.getValue());
-            if (valueFirst == null) {
-                System.out.println("There are no more values in the list");
-            }
-            else{
-                Assert.assertTrue(entry.getValue() >= valueFirst);
-            }
-            valueFirst = entry.getValue();
+
         }
     }
 }
