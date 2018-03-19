@@ -1,303 +1,222 @@
-import sun.jvm.hotspot.utilities.Assert;
-
 import java.io.*;
 import java.util.*;
 
-/**
- * Huffman encoding obeys the huffman algorithm.
- * It compresses the input sentence and serializes the "huffman code"
- * and the "tree" used to generate  the huffman code
- * Both the serialized files are intended to be sent to client.
- *
- */
-public final class Huffman {
+public class Huffman implements IHuffman {
 
-    private Huffman() {};
+    private boolean readFromFile;
+    private boolean writeToFile;
+    private boolean newTextBasedOnOldOne;
 
-    private static class HuffmanNode {
-        char ch;
-        int frequency;
-        HuffmanNode left;
-        HuffmanNode right;
+    private PriorityQueue<Node> nodes = new PriorityQueue<>((o1, o2) -> (o1.value < o2.value) ? -1 : 1);
+    private TreeMap<Character, String> codes = new TreeMap<>();
+    private String text = "";
+    private String encoded = "";
+    private String decoded = "";
+    private String fileName = "encoded.txt";
+    private int ASCII[] = new int[128];
 
-        HuffmanNode(char ch, int frequency,  HuffmanNode left,  HuffmanNode right) {
-            this.ch = ch;
-            this.frequency = frequency;
-            this.left = left;
-            this.right = right;
+    public Huffman(boolean readFromFile, boolean writeToFile, boolean newTextBasedOnOldOne) throws IOException {
+        this.readFromFile = readFromFile;
+        this.writeToFile = writeToFile;
+        this.newTextBasedOnOldOne = newTextBasedOnOldOne;
+
+        Scanner scanner = (readFromFile) ? new Scanner(new File(fileName)) : new Scanner(System.in);
+        int decision = 1;
+        while (decision != -1) {
+            if (handlingDecision(scanner, decision)) continue;
+            decision = consoleMenu(scanner);
         }
     }
 
-    private static class HuffManComparator implements Comparator<HuffmanNode> {
-        @Override
-        public int compare(HuffmanNode node1, HuffmanNode node2) {
-            return node1.frequency - node2.frequency;
-        }
+    @Override
+    public int consoleMenu(Scanner scanner) {
+        int decision;
+        System.out.println("\n<--Menu-->\n" +
+                "-> [-1] to exit \n" +
+                "-> [1] to enter new text\n" +
+                "-> [2] to decode from file");
+        decision = Integer.parseInt(scanner.nextLine());
+        if (readFromFile)
+            System.out.println("Decision: " + decision + "\n<!-- Menu End --!>\n");
+        return decision;
     }
 
-    /**
-     * Compresses the string using huffman algorithm.
-     * The huffman tree and the huffman code are serialized to disk
-     *
-     * @param sentence                  The sentence to be serialized
-     * @throws FileNotFoundException    If file is not found
-     * @throws IOException              If IO exception occurs.
-     */
-    public static void compress(String sentence) throws FileNotFoundException, IOException {
-        if (sentence == null) {
-            throw new NullPointerException("Input sentence cannot be null.");
-        }
-        if (sentence.length() == 0) {
-            throw new IllegalArgumentException("The string should atleast have 1 character.");
-        }
-
-        final Map<Character, Integer> charFreq = getCharFrequency(sentence);
-        final HuffmanNode root = buildTree(charFreq);
-        final Map<Character, String> charCode = generateCodes(charFreq.keySet(), root);
-        final String encodedMessage = encodeMessage(charCode, sentence);
-        serializeTree(root);
-        serializeMessage(encodedMessage);
-    }
-
-    private static Map<Character, Integer> getCharFrequency(String sentence) {
-        final Map<Character, Integer> map = new HashMap<Character, Integer>();
-
-        for (int i = 0; i < sentence.length(); i++) {
-            char ch = sentence.charAt(i);
-            if (!map.containsKey(ch)) {
-                map.put(ch, 1);
-            } else {
-                int val = map.get(ch);
-                map.put(ch, ++val);
+    @Override
+    public boolean handlingDecision(Scanner scanner, int decision) {
+        if (decision == 1) {
+            if (handleNewText(scanner)) return true;
+        } else if (decision == 2) {
+            if (handleEncodingNewText(scanner)) return true;
+        } else if (decision == 3) {
+            handleDecodingNewText(scanner);
+        } else if (decision == 4) {
+            try {
+                readFromFile();
+            } catch (IOException e) {
+                System.out.println("IOException reading from file");
             }
         }
-
-        return map;
+        return false;
     }
 
+    @Override
+    public void handleDecodingNewText(Scanner scanner) {
+        System.out.println("Enter the text to decode:");
+        encoded = scanner.nextLine();
+        System.out.println("Text to Decode: " + encoded);
+        decodeText();
+    }
 
-    /**
-     * Map<Character, Integer> map
-     * Some implementation of that treeSet is passed as parameter.
-     * @param map
-     */
-    private static HuffmanNode buildTree(Map<Character, Integer> map) {
-        final Queue<HuffmanNode> nodeQueue = createNodeQueue(map);
+    @Override
+    public boolean handleEncodingNewText(Scanner scanner) {
+        System.out.println("Enter the text to encode:");
+        text = scanner.nextLine();
+        System.out.println("Text to Encode: " + text);
 
-        while (nodeQueue.size() > 1) {
-            final HuffmanNode node1 = nodeQueue.remove();
-            final HuffmanNode node2 = nodeQueue.remove();
-            HuffmanNode node = new HuffmanNode('\0', node1.frequency + node2.frequency, node1, node2);
-            nodeQueue.add(node);
+        if (!IsSameCharacterSet()) {
+            System.out.println("Not Valid input");
+            text = "";
+            return true;
         }
-
-        // remove it to prevent object leak.
-        return nodeQueue.remove();
+        encodeText();
+        return false;
     }
 
-    private static Queue<HuffmanNode> createNodeQueue(Map<Character, Integer> map) {
-        final Queue<HuffmanNode> pq = new PriorityQueue<HuffmanNode>(11, new HuffManComparator());
-        for (Map.Entry<Character, Integer> entry : map.entrySet()) {
-            pq.add(new HuffmanNode(entry.getKey(), entry.getValue(), null, null));
+    @Override
+    public boolean handleNewText(Scanner scanner) {
+        int oldTextLength = text.length();
+        System.out.println("Enter the text:");
+        text = scanner.nextLine();
+        if (newTextBasedOnOldOne && (oldTextLength != 0 && !IsSameCharacterSet())) {
+            System.out.println("Not Valid input");
+            text = "";
+            return true;
         }
-        return pq;
+        ASCII = new int[128];
+        nodes.clear();
+        codes.clear();
+        encoded = "";
+        decoded = "";
+        System.out.println("Text: " + text);
+        calculateCharIntervals(nodes, true);
+        buildTree(nodes);
+        generateCodes(nodes.peek(), "");
+
+        printCodes();
+        System.out.println("-- Encoding/Decoding --");
+        encodeText();
+        decodeText();
+        return false;
     }
 
-    private static Map<Character, String> generateCodes(Set<Character> chars, HuffmanNode node) {
-        final Map<Character, String> map = new HashMap<Character, String>();
-        doGenerateCode(node, map, "");
-        return map;
-    }
-
-
-    private static void doGenerateCode(HuffmanNode node, Map<Character, String> map, String s) {
-        if (node.left == null && node.right == null) {
-            map.put(node.ch, s);
-            return;
-        }
-        doGenerateCode(node.left, map, s + '0');
-        doGenerateCode(node.right, map, s + '1' );
-    }
-
-
-    private static String encodeMessage(Map<Character, String> charCode, String sentence) {
-        final StringBuilder stringBuilder = new StringBuilder();
-
-        for (int i = 0; i < sentence.length(); i++) {
-            stringBuilder.append(charCode.get(sentence.charAt(i)));
-        }
-        return stringBuilder.toString();
-    }
-
-    private static void serializeTree(HuffmanNode node) throws FileNotFoundException, IOException {
-        final BitSet bitSet = new BitSet();
-        try (ObjectOutputStream oosTree = new ObjectOutputStream(new FileOutputStream("/Users/sandervanhooff/Desktop/tree"))) {
-            try (ObjectOutputStream oosChar = new ObjectOutputStream(new FileOutputStream("/Users/sandervanhooff/Desktop/char"))) {
-                IntObject o = new IntObject();
-                preOrder(node, oosChar, bitSet, o);
-                bitSet.set(o.bitPosition, true); // padded to mark end of bit set relevant for deserialization.
-                oosTree.writeObject(bitSet);
+    @Override
+    public boolean IsSameCharacterSet() {
+        boolean flag = true;
+        for (int i = 0; i < text.length(); i++)
+            if (ASCII[text.charAt(i)] == 0) {
+                flag = false;
+                break;
             }
-        }
+        return flag;
     }
 
-    private static class IntObject {
-        int bitPosition;
-    }
-
-    /*
-     * Algo:
-     * 1. Access the node
-     * 2. Register the value in bit set.
-     * 
-     * 
-     * here true and false dont correspond to left branch and right branch.
-     * there,
-     * - true means "a branch originates from leaf"
-     * - false mens "a branch originates from non-left".
-     * 
-     * Also since branches originate from some node, the root node must be provided as source 
-     * or starting point of initial branches.
-     *     
-     * Diagram and how an bit set would look as a result.
-     *              (source node)
-     *             /             \
-     *          true             true
-     *           /                  \
-     *       (leaf node)        (leaf node)
-     *          |                     |
-     *        false                  false 
-     *          |                     |
-     *          
-     * So now a bit set looks like [false, true, false, true]          
-     * 
-     */
-    private static void preOrder(HuffmanNode node, ObjectOutputStream oosChar, BitSet bitSet, IntObject intObject) throws IOException {
-        if (node.left == null && node.right == null) {
-            bitSet.set(intObject.bitPosition++, false);  // register branch in bitset
-            oosChar.writeChar(node.ch);
-            return;                                  // DONT take the branch.
-        }
-        bitSet.set(intObject.bitPosition++, true);           // register branch in bitset
-        preOrder(node.left, oosChar, bitSet, intObject); // take the branch.
-
-        bitSet.set(intObject.bitPosition++, true);               // register branch in bitset
-        preOrder(node.right, oosChar, bitSet, intObject);    // take the branch.
-    }
-
-    private static void serializeMessage(String message) throws IOException {
-        final BitSet bitSet = getBitSet(message);
-
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("/Users/sandervanhooff/Desktop/encodedMessage"))){
-
-            oos.writeObject(bitSet);
-        }
-    }
-
-    private static BitSet getBitSet(String message) {
-        final BitSet bitSet = new BitSet();
-        int i = 0;
-        for (i = 0; i < message.length(); i++) {
-            if (message.charAt(i) == '0') {
-                bitSet.set(i, false);
-            } else {
-                bitSet.set(i, true);
+    @Override
+    public void decodeText() {
+        decoded = "";
+        Node node = nodes.peek();
+        for (int i = 0; i < encoded.length(); ) {
+            Node tmpNode = node;
+            while (tmpNode.left != null && tmpNode.right != null && i < encoded.length()) {
+                if (encoded.charAt(i) == '1')
+                    tmpNode = tmpNode.right;
+                else tmpNode = tmpNode.left;
+                i++;
             }
+            if (tmpNode != null)
+                if (tmpNode.character.length() == 1)
+                    decoded += tmpNode.character;
+                else
+                    System.out.println("Input not Valid");
+
         }
-        bitSet.set(i, true); // dummy bit set to know the length 
-        return bitSet;
+        System.out.println("Decoded Text: " + decoded);
     }
 
-    /**
-     * Retrieves back the original string.
-     *
-     *
-     * @return                          The original uncompressed string
-     * @throws FileNotFoundException    If the file is not found
-     * @throws ClassNotFoundException   If class is not found
-     * @throws IOException              If IOException occurs
-     */
-    public static String expand() throws FileNotFoundException, ClassNotFoundException, IOException {
-        final HuffmanNode root = deserializeTree();
-        return decodeMessage(root);
+    @Override
+    public void readFromFile() throws IOException {
+        FileInputStream fin = new FileInputStream(fileName);
+        ObjectInputStream ois = new ObjectInputStream(fin);
+        try {
+            Object o = ois.readObject();
+            System.out.println(o);
+        } catch (ClassNotFoundException e) {
+            System.out.println("ClassNotFoundException reading object");
+        }
     }
 
-    private static HuffmanNode deserializeTree() throws FileNotFoundException, IOException, ClassNotFoundException {
-        try (ObjectInputStream oisBranch = new ObjectInputStream(new FileInputStream("/Users/sandervanhooff/Desktop/tree"))) {
-            try (ObjectInputStream oisChar = new ObjectInputStream(new FileInputStream("/Users/sandervanhooff/Desktop/char"))) {
-                final BitSet bitSet = (BitSet) oisBranch.readObject();
-                return preOrder(bitSet, oisChar, new IntObject());
+    @Override
+    public void encodeText() {
+        encoded = "";
+        for (int i = 0; i < text.length(); i++)
+            encoded += codes.get(text.charAt(i));
+        System.out.println("Encoded Text: " + encoded);
+
+        if (writeToFile) {
+            try {
+                writeToFile(encoded);
+            } catch (IOException e) {
+                System.out.println("IOException reading encoded file.");
             }
         }
     }
 
-    /*
-     * Construct a tree from: 
-     * input [false, true, false, true, (dummy true to mark the end of bit set)]
-     * The input is constructed from preorder traversal
-     * 
-     * Algo:
-     * 1  Create the node.
-     * 2. Read what is registered in bitset, and decide if created node is supposed to be a leaf or non-leaf 
-     * 
-     */
-    private static HuffmanNode preOrder(BitSet bitSet, ObjectInputStream oisChar, IntObject o) throws IOException {
-        // created the node before reading whats registered.
-        final HuffmanNode node = new HuffmanNode('\0', 0, null, null);
-
-        // reading whats registered and determining if created node is the leaf or non-leaf.
-        if (!bitSet.get(o.bitPosition)) {
-            o.bitPosition++;              // feed the next position to the next stack frame by doing computation before preOrder is called.
-            node.ch = oisChar.readChar();
-            return node;
-        }
-
-        o.bitPosition = o.bitPosition + 1;  // feed the next position to the next stack frame by doing computation before preOrder is called.
-        node.left = preOrder(bitSet, oisChar, o);
-
-        o.bitPosition = o.bitPosition + 1; // feed the next position to the next stack frame by doing computation before preOrder is called.
-        node.right = preOrder(bitSet, oisChar, o);
-
-        return node;
+    @Override
+    public void writeToFile(String encodedText) throws IOException {
+        FileOutputStream fout = new FileOutputStream(fileName);
+        ObjectOutputStream oos = new ObjectOutputStream(fout);
+        oos.writeObject(encodedText);
     }
 
-    private static String decodeMessage(HuffmanNode node) throws FileNotFoundException, IOException, ClassNotFoundException {
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("/Users/sandervanhooff/Desktop/encodedMessage"))) {
-            final BitSet bitSet = (BitSet) ois.readObject();
-            final StringBuilder stringBuilder = new StringBuilder();
-            for (int i = 0; i < (bitSet.length() - 1);) {
-                HuffmanNode temp = node;
-                // since huffman code generates full binary tree, temp.right is certainly null if temp.left is null.
-                while (temp.left != null) {
-                    if (!bitSet.get(i)) {
-                        temp = temp.left;
-                    } else {
-                        temp = temp.right;
-                    }
-                    i = i + 1;
+    @Override
+    public void buildTree(PriorityQueue<Node> vector) {
+        while (vector.size() > 1)
+            vector.add(new Node(vector.poll(), vector.poll()));
+    }
+
+    @Override
+    public void printCodes() {
+        System.out.println("--- Printing Codes ---");
+        codes.forEach((k, v) -> System.out.println("'" + k + "' : " + v));
+    }
+
+    @Override
+    public void calculateCharIntervals(PriorityQueue<Node> vector, boolean printIntervals) {
+        if (printIntervals) System.out.println("-- intervals --");
+
+        for (int i = 0; i < text.length(); i++)
+            ASCII[text.charAt(i)]++;
+
+        for (int i = 0; i < ASCII.length; i++)
+            if (ASCII[i] > 0) {
+                vector.add(new Node(ASCII[i] / (text.length() * 1.0), ((char) i) + ""));
+                if (printIntervals){
+//                    System.out.println("'" + ((char) i) + "' : " + ASCII[i] / (text.length() * 1.0));
+                    System.out.println("'" + ((char) i) + "' : " + ASCII[i]);
                 }
-                stringBuilder.append(temp.ch);
             }
-            return stringBuilder.toString();
-        }
     }
 
-    public static void main(String[] args) throws FileNotFoundException, IOException, ClassNotFoundException {
-        // even number of characters
-        Huffman.compress("java collections framework");
-        System.out.println(Huffman.expand());
-//        Assert.assertEquals("some", Huffman.expand());
-//
-//        // odd number of characters
-//        Huffman.compress("someday");
-//        Assert.assertEquals("someday", Huffman.expand());
-//
-//        // repeating even number of characters + space + non-ascii
-//        Huffman.compress("some some#");
-//        Assert.assertEquals("some some#", Huffman.expand());
-//
-//        // odd number of characters + space + non-ascii
-//        Huffman.compress("someday someday&");
-//        Assert.assertEquals("someday someday&", Huffman.expand());
+    @Override
+    public void generateCodes(Node node, String s) {
+        if (node != null) {
+            if (node.right != null)
+                generateCodes(node.right, s + "1");
+
+            if (node.left != null)
+                generateCodes(node.left, s + "0");
+
+            if (node.left == null && node.right == null)
+                codes.put(node.character.charAt(0), s);
+        }
     }
 }
