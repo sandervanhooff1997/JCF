@@ -94,7 +94,6 @@ public class WoordenManagerTest {
     //OUTCOME: PASSED
     @Test
     public void testConcordatie() {
-
         TreeMap<String, LinkedList<Integer>> treemap;
         Assert.assertNotNull(woordenManager.getConcordanceWords());
         treemap = woordenManager.getConcordanceWords();
