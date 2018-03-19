@@ -28,7 +28,7 @@ public class WoordenManager implements IWoordenManager{
                 word = false;
                 // last word of String; if it doesn't end with a non letter, it
                 // wouldn't count without this.
-            } else if (Character.isLetter(DEFAULT_TEXT.charAt(i)) && i == endOfLine) {
+            } else if (Character.isLetter(DEFAULT_TEXT.charAt(i)) && i == endOfLine) { // O(N)
                 wordCount++;
             }
         }
@@ -38,17 +38,15 @@ public class WoordenManager implements IWoordenManager{
 
     @Override
     public String[] getSeperatedWords(){
-        return DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*");
+        return DEFAULT_TEXT.split("\\s*(=>|,|\\s)\\s*"); // O(1)
     }
 
     @Override
-    public ArrayList<String> getDistinctWords(){
-        ArrayList<String> distinctWords = new ArrayList<>();
+    public HashSet<String> getDistinctWords(){
+        HashSet<String> distinctWords = new HashSet<>();
 
         for (String s : getSeperatedWords()) {
-            if(!distinctWords.contains(s)){ //add the word if it isn't added already
                 distinctWords.add(s);
-            }
         }
 
         return distinctWords; //return the list you made of distinct words
@@ -56,10 +54,10 @@ public class WoordenManager implements IWoordenManager{
 
     @Override
     public ArrayList<String> getSortedWords(){
-        ArrayList<String> sortedWords = getDistinctWords();
+        HashSet<String> sortedWords = getDistinctWords();
         //sortedWords.sort(String::compareToIgnoreCase);
-        Collections.sort(sortedWords, Collections.reverseOrder());
-        return sortedWords;
+        Collections.sort(sortedWords, Collections.reverseOrder()); // O(N)
+        //return sortedWords;
     }
 
     @Override
@@ -67,8 +65,8 @@ public class WoordenManager implements IWoordenManager{
         Map<String, Integer> map = new HashMap<>();
 
         for (String temp : getSeperatedWords()) {
-            Integer count = map.get(temp);
-            map.put(temp, (count == null) ? 1 : count + 1);
+            Integer count = map.get(temp);  // O(N)
+            map.put(temp, (count == null) ? 1 : count + 1);  // O(N)
         }
 
         // sort the map order
@@ -77,17 +75,18 @@ public class WoordenManager implements IWoordenManager{
 
     @Override
     public TreeMap<String, LinkedList<Integer>> getConcordanceWords(){
+
         TreeMap<String, LinkedList<Integer>> treemap = new TreeMap<>();
 
         int i = 0;
         for (String woord : getSeperatedWords()) {
 
             if (!treemap.containsKey(woord)) {
-                LinkedList linkedList = new LinkedList<Integer>();
-                linkedList.add(i + 1);
+                LinkedList linkedList = new LinkedList<Integer>(); // O(1)
+                linkedList.add(i + 1); // O(N)
                 treemap.put(woord, linkedList);
             } else {
-                LinkedList IntList = treemap.get(woord);
+                LinkedList IntList = treemap.get(woord); // O(N)
                 IntList.add(i + 1);
             }
             i++;
