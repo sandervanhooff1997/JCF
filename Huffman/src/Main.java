@@ -7,7 +7,7 @@ import java.util.TreeMap;
 public class Main {
     public static void main(String[] args) throws FileNotFoundException {
         try {
-            IHuffman huffman = new Huffman(false, false, false);
+            IHuffman huffman = new Huffman();
         } catch (IOException e) {
             System.out.println("IOException reading input.");
         }
