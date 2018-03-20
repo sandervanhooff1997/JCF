@@ -1,12 +1,9 @@
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class Huffman implements IHuffman {
-
-    private boolean readFromFile;
-    private boolean writeToFile;
-    private boolean newTextBasedOnOldOne;
-
     private PriorityQueue<Node> nodes = new PriorityQueue<>((o1, o2) -> (o1.value < o2.value) ? -1 : 1);
     private TreeMap<Character, String> codes = new TreeMap<>();
     private String text = "";
@@ -15,14 +12,14 @@ public class Huffman implements IHuffman {
     private String fileName = "encoded.txt";
     private int ASCII[] = new int[128];
 
-    public Huffman(boolean readFromFile, boolean writeToFile, boolean newTextBasedOnOldOne) throws IOException {
-        this.readFromFile = readFromFile;
-        this.writeToFile = writeToFile;
-        this.newTextBasedOnOldOne = newTextBasedOnOldOne;
+    public Huffman() throws IOException {
+        // create scanner from file / create scanner from input
+        Scanner scanner = new Scanner(System.in);
 
-        Scanner scanner = (readFromFile) ? new Scanner(new File(fileName)) : new Scanner(System.in);
-        int decision = 1;
+        // determine the decision
+        int decision = 0;
         while (decision != -1) {
+            // if the decision is either 1 or 2 continue
             if (handlingDecision(scanner, decision)) continue;
             decision = consoleMenu(scanner);
         }
@@ -36,22 +33,25 @@ public class Huffman implements IHuffman {
                 "-> [1] to enter new text\n" +
                 "-> [2] to decode from file");
         decision = Integer.parseInt(scanner.nextLine());
-        if (readFromFile)
-            System.out.println("Decision: " + decision + "\n<!-- Menu End --!>\n");
+//        System.out.println("Decision: " + decision + "\n<!-- Menu End --!>\n");
         return decision;
     }
 
     @Override
     public boolean handlingDecision(Scanner scanner, int decision) {
+        // create new huffman from text
         if (decision == 1) {
             if (handleNewText(scanner)) return true;
-        } else if (decision == 2) {
-            if (handleEncodingNewText(scanner)) return true;
-        } else if (decision == 3) {
-            handleDecodingNewText(scanner);
-        } else if (decision == 4) {
+        }
+//        else if (decision == 2) {
+//            if (handleEncodingNewText(scanner)) return true;
+//        } else if (decision == 3) {
+//            handleDecodingNewText(scanner);
+//        }
+        // create huffman from file
+        else if (decision == 2) {
             try {
-                readFromFile();
+                if (readFromFile()) return true;
             } catch (IOException e) {
                 System.out.println("IOException reading from file");
             }
@@ -84,25 +84,37 @@ public class Huffman implements IHuffman {
 
     @Override
     public boolean handleNewText(Scanner scanner) {
-        int oldTextLength = text.length();
+//        int oldTextLength = text.length();
         System.out.println("Enter the text:");
         text = scanner.nextLine();
-        if (newTextBasedOnOldOne && (oldTextLength != 0 && !IsSameCharacterSet())) {
-            System.out.println("Not Valid input");
-            text = "";
-            return true;
-        }
+//        if (newTextBasedOnOldOne && (oldTextLength != 0 && !IsSameCharacterSet())) {
+//            System.out.println("Not Valid input");
+//            text = "";
+//            return true;
+//        }
+
+        // reset all values
         ASCII = new int[128];
         nodes.clear();
         codes.clear();
         encoded = "";
         decoded = "";
+
+        // display text to user
         System.out.println("Text: " + text);
+
+        // calculate char intervals
         calculateCharIntervals(nodes, true);
+
+        // build the tree from the nodes
         buildTree(nodes);
+
+        // generate tree node codes (0/1)
         generateCodes(nodes.peek(), "");
 
         printCodes();
+
+        // show the encoded text and decoded text
         System.out.println("-- Encoding/Decoding --");
         encodeText();
         decodeText();
@@ -143,14 +155,17 @@ public class Huffman implements IHuffman {
     }
 
     @Override
-    public void readFromFile() throws IOException {
-        FileInputStream fin = new FileInputStream(fileName);
-        ObjectInputStream ois = new ObjectInputStream(fin);
-        try {
-            Object o = ois.readObject();
-            System.out.println(o);
-        } catch (ClassNotFoundException e) {
-            System.out.println("ClassNotFoundException reading object");
+    public boolean readFromFile() throws IOException {
+        Path path = Paths.get(fileName);
+        try (Scanner scanner =  new Scanner(fileName)){
+            while (scanner.hasNextLine()){
+                //process each line in some way
+                System.out.println(scanner.nextLine());
+            }
+            return true;
+        }catch (Exception e) {
+            System.out.println("Error reading file: " + e.getMessage());
+            return false;
         }
     }
 
@@ -161,24 +176,23 @@ public class Huffman implements IHuffman {
             encoded += codes.get(text.charAt(i));
         System.out.println("Encoded Text: " + encoded);
 
-        if (writeToFile) {
-            try {
-                writeToFile(encoded);
-            } catch (IOException e) {
-                System.out.println("IOException reading encoded file.");
-            }
+        try {
+            writeToFile(encoded);
+        } catch (IOException e) {
+            System.out.println("IOException reading encoded file.");
         }
     }
 
     @Override
     public void writeToFile(String encodedText) throws IOException {
-        FileOutputStream fout = new FileOutputStream(fileName);
-        ObjectOutputStream oos = new ObjectOutputStream(fout);
-        oos.writeObject(encodedText);
+        PrintWriter writer = new PrintWriter(fileName, "UTF-8");
+        writer.println(encodedText);
+        writer.close();
     }
 
     @Override
     public void buildTree(PriorityQueue<Node> vector) {
+        // remove the top 2 nodes and re-add this in 1 node with 2 child nodes
         while (vector.size() > 1)
             vector.add(new Node(vector.poll(), vector.poll()));
     }
@@ -193,14 +207,17 @@ public class Huffman implements IHuffman {
     public void calculateCharIntervals(PriorityQueue<Node> vector, boolean printIntervals) {
         if (printIntervals) System.out.println("-- intervals --");
 
+        // count the interval of each char in the 'text' string and add the frequency to the letter (key)
         for (int i = 0; i < text.length(); i++)
             ASCII[text.charAt(i)]++;
 
+        // create nodes for each distinct letter in 'ASCII[]'
         for (int i = 0; i < ASCII.length; i++)
             if (ASCII[i] > 0) {
-                vector.add(new Node(ASCII[i] / (text.length() * 1.0), ((char) i) + ""));
+                // add the new node to the PriorityQueue of nodes
+                vector.add(new Node(ASCII[i] / text.length(), ((char) i) + ""));
+
                 if (printIntervals){
-//                    System.out.println("'" + ((char) i) + "' : " + ASCII[i] / (text.length() * 1.0));
                     System.out.println("'" + ((char) i) + "' : " + ASCII[i]);
                 }
             }
@@ -209,12 +226,15 @@ public class Huffman implements IHuffman {
     @Override
     public void generateCodes(Node node, String s) {
         if (node != null) {
+            // generate the code for the right node if there is one
             if (node.right != null)
                 generateCodes(node.right, s + "1");
 
+            // generate the code for the left node if there is one
             if (node.left != null)
                 generateCodes(node.left, s + "0");
 
+            // if the node has no childs left put the final string to the last node
             if (node.left == null && node.right == null)
                 codes.put(node.character.charAt(0), s);
         }

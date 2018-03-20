@@ -17,7 +17,7 @@ public interface IHuffman {
 
     void decodeText();
 
-    void readFromFile () throws IOException;
+    boolean readFromFile () throws IOException;
 
     void encodeText();
 
